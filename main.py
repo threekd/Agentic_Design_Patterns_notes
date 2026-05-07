@@ -9,7 +9,11 @@ from langchain_core.output_parsers import StrOutputParser
 # Make sure your OPENAI_API_KEY is set in the .env file
 
 # Initialize the Language Model (using ChatOpenAI is recommended)
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(
+    temperature=0,
+    base_url="https://api.deepseek.com",
+    model="deepseek-v4-flash", 
+    )
 
 # --- Prompt 1: Extract Information ---
 prompt_extract = ChatPromptTemplate.from_template(
