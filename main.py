@@ -1,48 +1,52 @@
-import os
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
+#!/usr/bin/env python3
+"""
+验证 OpenAI 兼容的第三方站点是否可用
+使用方法:
+    1. 安装 openai: pip install openai
+    2. 根据实际情况修改下方 YOUR_BASE_URL 和 YOUR_API_KEY
+    3. 运行脚本: python check_openai_compatible.py
+"""
 
-# For better security, load environment variables from a .env file
-# from dotenv import load_dotenv
-# load_dotenv()
-# Make sure your OPENAI_API_KEY is set in the .env file
+from openai import OpenAI
+import sys
 
-# Initialize the Language Model (using ChatOpenAI is recommended)
-llm = ChatOpenAI(
-    temperature=0,
-    base_url="https://api.deepseek.com",
-    model="deepseek-v4-flash", 
+# ========== 配置区域 ==========
+BASE_URL = "https://api.gptsapi.net"   # 例如: https://api.example.com/v1
+API_KEY = "sk-Doc810b84539c54f3faba57bd2e94ca37ee3541aec7kpW0U"     # 第三方站点的 API Key
+MODEL = "gpt-4o"      # 选择一个该站点支持的模型名称
+# =============================
+
+def test_connection():
+    """测试连接和认证"""
+    # 创建客户端，传入自定义 base_url 和 api_key
+    client = OpenAI(
+        base_url=BASE_URL,
+        api_key=API_KEY,
+        timeout=30.0,          # 超时时间（秒）
     )
 
-# --- Prompt 1: Extract Information ---
-prompt_extract = ChatPromptTemplate.from_template(
-    "Extract the technical specifications from the following text:\n\n{text_input}"
-)
+    try:
+        # 发送一个极简的聊天请求
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "user", "content": "Hello, this is a connectivity test. Please reply with 'OK'."}
+            ],
+            max_tokens=5,
+            temperature=0.0,
+        )
 
-# --- Prompt 2: Transform to JSON ---
-prompt_transform = ChatPromptTemplate.from_template(
-    "Transform the following specifications into a JSON object with 'cpu', 'memory', and 'storage' as keys:\n\n{specifications}"
-)
+        # 提取回复内容
+        reply = response.choices[0].message.content
+        print("✅ 连接成功！")
+        print(f"模型回复: {reply}")
+        return True
 
-# --- Build the Chain using LCEL ---
-# The StrOutputParser() converts the LLM's message output to a simple string.
-extraction_chain = prompt_extract | llm | StrOutputParser()
+    except Exception as e:
+        print(f"❌ 连接失败: {e}")
+        return False
 
-# The full chain passes the output of the extraction chain into the 'specifications'
-# variable for the transformation prompt.
-full_chain = (
-    {"specifications": extraction_chain}
-    | prompt_transform
-    | llm
-    | StrOutputParser()
-)
-
-# --- Run the Chain ---
-input_text = "The new laptop model features a 3.5 GHz octa-core processor, 16GB of RAM, and a 1TB NVMe SSD."
-
-# Execute the chain with the input text dictionary.
-final_result = full_chain.invoke({"text_input": input_text})
-
-print("\n--- Final JSON Output ---")
-print(final_result)
+if __name__ == "__main__":
+    print(f"测试目标: {BASE_URL}")
+    success = test_connection()
+    sys.exit(0 if success else 1)
